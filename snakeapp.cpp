@@ -87,7 +87,7 @@ int main() {
 
 
     // test comment
-
+    // test comment 2
 
     gameinprogress = false;
   }
