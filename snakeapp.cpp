@@ -9,7 +9,7 @@ enum Direction { left, right, up, down };
 
 class Snake {
   public:
-    int xpos, ypos, length;
+    int xpos, ypos;
     Direction direction;
     vector< pair<int, int> > body;
 
@@ -28,6 +28,10 @@ class Snake {
 
     int getLength() {
       return body.size();
+    }
+
+    Direction getDirection() {
+      return direction;
     }
 
 
@@ -95,7 +99,51 @@ void iterateGame(Snake* s) {
 
   printw("xpos: %d\n", s->xpos);
   printw("ypos: %d\n", s->ypos);
+}
 
+void processinput(Snake* s, int input) { 
+  Direction direction = s->getDirection();
+  switch (input) {
+    case KEY_UP:
+      addstr("Up\n");
+      if (direction != Direction::down) {
+        s->rotate(Direction::up);
+        addstr("Rotated!\n");
+      }
+      refresh();
+      break;
+    case KEY_DOWN:
+      addstr("Down\n");
+      if (direction != Direction::up) {
+        s->rotate(Direction::down);
+        addstr("Rotated!\n");
+      }
+      refresh();
+      break;
+    case KEY_LEFT:
+      addstr("Left\n");
+      if (direction != Direction::right) {
+        s->rotate(Direction::left);
+        addstr("Rotated!\n");
+      }
+      refresh();
+      break;
+    case KEY_RIGHT:
+      addstr("Right\n");
+      if (direction != Direction::left) {
+        s->rotate(Direction::right);
+        addstr("Rotated!\n");
+      }
+      refresh();
+      break;
+    case ERR:
+      break;
+    default:
+      addstr("Other key\n");
+      refresh();
+      break;
+     
+  }
 
 }
 
@@ -126,7 +174,6 @@ int main() {
   btoc[apple] = '@';
   btoc[frame] = '#';
 
-
   // setup game variables
   int iteration = 0;
   bool gameinprogress = true;
@@ -135,37 +182,48 @@ int main() {
   initscr();
   noecho();
   nodelay(stdscr, TRUE);
+  keypad(stdscr, TRUE);
+  cbreak();
 
+  int keyrefreshcount = 10;
+  double iterationtime = 0.3; // in seconds
+  int maxiterations = 200;
   // begin game
   while (gameinprogress) {
     printfield(); 
 
-    if (iteration == 6) {
-      s.rotate(up);
-    }
-    iterateGame(&s);
 
     printw("Iteration %d\n", iteration);
 
+
+
+    for (int i = 0; i < keyrefreshcount; i++) { 
+      Direction currdirection = s.getDirection();
+      int input = getch();
+      processinput(&s, input);
+      if (currdirection != s.getDirection()) {
+        break;
+      }
+      napms(1000*iterationtime/keyrefreshcount);
+    }
+
+    iterateGame(&s);
     refresh();
-    getch();
-
-
-
-    napms(1000);
 
 
 
 
 
-    if (iteration == 10) {
+
+
+
+    if (iteration >= maxiterations) {
       gameinprogress = false;
     }
-    iteration++;
 
+    iteration++;
   }
 
   endwin();
-
 
 } 
