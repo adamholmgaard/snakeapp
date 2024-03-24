@@ -93,54 +93,43 @@ void printfield() {
 }
 
 void iterateGame(Snake* s) {
-  field[s->body.back().second][s->body.back().first] = empty;
+  pair<int, int> tail = make_pair(s->body.back().second, s->body.back().first);
   s->moveForward();
+  Brick b = field[s->body.front().second][s->body.front().first];
   field[s->body.front().second][s->body.front().first] = snake;
+  if (b == Brick::apple) {
+    s->body.push_back(make_pair(tail.second, tail.first));
+    spawnApple(time(NULL));
 
-  printw("xpos: %d\n", s->xpos);
-  printw("ypos: %d\n", s->ypos);
+  } else {
+    field[tail.first][tail.second] = empty;
+  }
 }
 
 void processinput(Snake* s, int input) { 
   Direction direction = s->getDirection();
   switch (input) {
     case KEY_UP:
-      addstr("Up\n");
       if (direction != Direction::down) {
         s->rotate(Direction::up);
-        addstr("Rotated!\n");
       }
-      refresh();
       break;
     case KEY_DOWN:
-      addstr("Down\n");
       if (direction != Direction::up) {
         s->rotate(Direction::down);
-        addstr("Rotated!\n");
       }
-      refresh();
       break;
     case KEY_LEFT:
-      addstr("Left\n");
       if (direction != Direction::right) {
         s->rotate(Direction::left);
-        addstr("Rotated!\n");
       }
-      refresh();
       break;
     case KEY_RIGHT:
-      addstr("Right\n");
       if (direction != Direction::left) {
         s->rotate(Direction::right);
-        addstr("Rotated!\n");
       }
-      refresh();
-      break;
-    case ERR:
       break;
     default:
-      addstr("Other key\n");
-      refresh();
       break;
      
   }
@@ -186,16 +175,14 @@ int main() {
   cbreak();
 
   int keyrefreshcount = 10;
-  double iterationtime = 0.3; // in seconds
+  double iterationtime = 0.4; // in seconds
   int maxiterations = 200;
   // begin game
   while (gameinprogress) {
     printfield(); 
 
-
     printw("Iteration %d\n", iteration);
-
-
+    printw("Length %d\n", s.getLength());
 
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
@@ -208,8 +195,6 @@ int main() {
     }
 
     iterateGame(&s);
-    refresh();
-
 
 
 
