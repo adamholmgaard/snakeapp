@@ -87,7 +87,7 @@ class Snake {
     }
 };
 
-map<Brick, char> btoc;
+map<Brick, chtype> btoc;
 
 void spawnApple(int seed) {
   int randomxpos, randomypos;
@@ -173,12 +173,6 @@ int main() {
   //spawn apple
   spawnApple(time(NULL));
 
-  //setup brick to char map
-  btoc[empty] = ' ';
-  btoc[snake] = 'S';
-  btoc[apple] = '@';
-  btoc[frame] = '#';
-
   // setup game variables
   int iteration = 0;
   bool gameinprogress = true;
@@ -189,19 +183,35 @@ int main() {
   nodelay(stdscr, TRUE);
   keypad(stdscr, TRUE);
   cbreak();
+  
+  //setup colors and brick to char map
+  start_color();
+  init_color(8,0,255,95); // background color
+  init_color(9,255,0,0); // apple red
+  init_pair(1,9,8); // apple
+  init_pair(2,4,8); // snake
+  init_pair(3,7,8); // empty
+  btoc[empty] = ' ' | COLOR_PAIR(3);
+  btoc[snake] = 'S' | A_BOLD | COLOR_PAIR(2);
+  btoc[apple] = '@' | A_BOLD | COLOR_PAIR(1); 
+  btoc[frame] = '#' | A_BOLD;
 
+  //setup game variables
   int keyrefreshcount = 10;
-  double iterationtime = 0.4; // in seconds
-  int maxiterations = 200;
+  double iterationtime = 0.2; // in seconds
+  int maxiterations = INT_MAX;
+  bool developerprints = false;
   
   // begin game
   while (gameinprogress) {
     printfield(); 
 
-    printw("Iteration %d\n", iteration);
-    printw("Length %d\n", s.getLength());
-    printw("xpos: %d\n", s.xpos);
-    printw("ypos: %d\n", s.ypos);
+    if (developerprints) {
+      printw("Iteration %d\n", iteration);
+      printw("Length %d\n", s.getLength());
+      printw("xpos: %d\n", s.xpos);
+      printw("ypos: %d\n", s.ypos);
+    }
 
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
