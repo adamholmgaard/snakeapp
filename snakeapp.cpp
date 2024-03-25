@@ -10,7 +10,9 @@ enum Direction { left, right, up, down };
 enum Brick { empty, snake, apple, frame };
 
 const int fieldheight = 11;
-const int fieldwidth = 30;
+const int fieldwidth = 20;
+bool borderclip;
+bool lost;
 Brick field[fieldheight][fieldwidth];
 
 // transform coordinates for snake so they dont touch the border
@@ -18,16 +20,32 @@ Brick field[fieldheight][fieldwidth];
 pair<int, int> coordsWithoutBorders(int xc, int yc) {
   int x, y;
   if (xc == 0) {
-    x = fieldwidth-2;
+    if (borderclip) {
+      x = fieldwidth-2;
+    } else {
+      lost = true;
+    }
   } else if (xc == fieldwidth-1) {
-    x = 1;
+    if (borderclip) {
+      x = 1;
+    } else {
+      lost = true;
+    }
   } else {
     x = xc;
   }
   if (yc == 0) {
-    y = fieldheight-2;
+    if (borderclip) {
+      y = fieldheight - 2;
+    } else {
+      lost = true;
+    }
   } else if (yc == fieldheight-1) {
-    y = 1;
+    if (borderclip) {
+      y = 1;
+    } else {
+      lost = true;
+    }
   } else {
     y = yc;
   }
@@ -119,6 +137,8 @@ void iterateGame(Snake* s) {
   if (b == Brick::apple) {
     s->body.push_back(make_pair(tail.second, tail.first));
     spawnApple(time(NULL));
+  } else if (b == Brick::snake) {
+    lost = true;
   } else {
     field[tail.first][tail.second] = empty;
   }
@@ -152,7 +172,7 @@ void processinput(Snake* s, int input) {
   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   // setup field
   fill(&field[0][0], &field[0][0] + sizeof(field) / sizeof(field[0][0]), empty);
 
@@ -172,10 +192,6 @@ int main() {
 
   //spawn apple
   spawnApple(time(NULL));
-
-  // setup game variables
-  int iteration = 0;
-  bool gameinprogress = true;
 
   // setup curses
   initscr();
@@ -197,13 +213,16 @@ int main() {
   btoc[frame] = '#' | A_BOLD;
 
   //setup game variables
+  int iteration = 0;
   int keyrefreshcount = 10;
   double iterationtime = 0.2; // in seconds
   int maxiterations = INT_MAX;
   bool developerprints = false;
+  borderclip = false;
+  lost = false;
   
   // begin game
-  while (gameinprogress) {
+  while (!lost) {
     printfield(); 
 
     if (developerprints) {
@@ -212,7 +231,7 @@ int main() {
       printw("xpos: %d\n", s.xpos);
       printw("ypos: %d\n", s.ypos);
     }
-
+    refresh();
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
       int input = getch();
@@ -222,21 +241,21 @@ int main() {
       }
       napms(1000*iterationtime/keyrefreshcount);
     }
-
+    refresh();
     iterateGame(&s);
 
-
-
-
-
-
     if (iteration >= maxiterations) {
-      gameinprogress = false;
+      lost = true;
     }
 
     iteration++;
   }
 
+  printw("You lost at length %d.\n", s.getLength());
+  refresh();
+  napms(2000);
+  
   endwin();
 
+  return 0;
 } 
