@@ -186,8 +186,8 @@ int main() {
   
   //setup colors and brick to char map
   start_color();
-  init_color(8,0,255,95); // background color
-  init_color(9,255,0,0); // apple red
+  init_color(8,0,1000,255); // background color
+  init_color(9,800,0,0); // apple red
   init_pair(1,9,8); // apple
   init_pair(2,4,8); // snake
   init_pair(3,7,8); // empty
