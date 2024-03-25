@@ -7,6 +7,33 @@ using namespace std;
 
 enum Direction { left, right, up, down };
 
+enum Brick { empty, snake, apple, frame };
+
+const int fieldheight = 11;
+const int fieldwidth = 30;
+Brick field[fieldheight][fieldwidth];
+
+// transform coordinates for snake so they dont touch the border
+// assumes (x,y) pair, 0<=x<=fieldwidth and 0<=y<=fieldheight
+pair<int, int> coordsWithoutBorders(int xc, int yc) {
+  int x, y;
+  if (xc == 0) {
+    x = fieldwidth-2;
+  } else if (xc == fieldwidth-1) {
+    x = 1;
+  } else {
+    x = xc;
+  }
+  if (yc == 0) {
+    y = fieldheight-2;
+  } else if (yc == fieldheight-1) {
+    y = 1;
+  } else {
+    y = yc;
+  }
+  return make_pair(x,y);
+}
+
 class Snake {
   public:
     int xpos, ypos;
@@ -34,39 +61,31 @@ class Snake {
       return direction;
     }
 
-
     void moveForward() {
       body.pop_back();
 
       switch (direction) {
         case Direction::right:
-          body.insert(body.begin(), make_pair(xpos+1, ypos));
-          xpos++;
+          body.insert(body.begin(), coordsWithoutBorders(xpos+1, ypos));  
+          xpos = coordsWithoutBorders(xpos+1, ypos).first;
           break;
         case up:
-          body.insert(body.begin(), make_pair(xpos, ypos-1));
-          ypos--;
+          body.insert(body.begin(), coordsWithoutBorders(xpos, ypos-1)); 
+          ypos = coordsWithoutBorders(xpos, ypos-1).second;
           break;
         case Direction::left:
-          body.insert(body.begin(), make_pair(xpos-1, ypos));
-          xpos--;
+          body.insert(body.begin(), coordsWithoutBorders(xpos-1, ypos));
+          xpos = coordsWithoutBorders(xpos-1, ypos).first;
           break;
         case down:
-          body.insert(body.begin(), make_pair(xpos, ypos+1));
-          ypos++;
+          body.insert(body.begin(), coordsWithoutBorders(xpos, ypos+1));
+          ypos = coordsWithoutBorders(xpos, ypos+1).second;
           break;
         default:
           cout << "An error occured at moveForward\n";
       }
-
     }
 };
-
-enum Brick { empty, snake, apple, frame };
-
-const int fieldheight = 11;
-const int fieldwidth = 30;
-Brick field[fieldheight][fieldwidth];
 
 map<Brick, char> btoc;
 
@@ -100,7 +119,6 @@ void iterateGame(Snake* s) {
   if (b == Brick::apple) {
     s->body.push_back(make_pair(tail.second, tail.first));
     spawnApple(time(NULL));
-
   } else {
     field[tail.first][tail.second] = empty;
   }
@@ -131,9 +149,7 @@ void processinput(Snake* s, int input) {
       break;
     default:
       break;
-     
   }
-
 }
 
 int main() {
@@ -177,12 +193,15 @@ int main() {
   int keyrefreshcount = 10;
   double iterationtime = 0.4; // in seconds
   int maxiterations = 200;
+  
   // begin game
   while (gameinprogress) {
     printfield(); 
 
     printw("Iteration %d\n", iteration);
     printw("Length %d\n", s.getLength());
+    printw("xpos: %d\n", s.xpos);
+    printw("ypos: %d\n", s.ypos);
 
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
@@ -195,7 +214,6 @@ int main() {
     }
 
     iterateGame(&s);
-
 
 
 
