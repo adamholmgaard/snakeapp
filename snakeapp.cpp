@@ -5,12 +5,15 @@
 #include <algorithm>
 using namespace std;
 
+int sscalls;
+int napples;
+
 enum Direction { left, right, up, down };
 
-enum Brick { empty, snake, apple, frame };
+enum Brick { empty, apple, frame, rsnake, lsnake, usnake, dsnake };
 
-const int fieldheight = 11;
-const int fieldwidth = 20;
+const int fieldheight = 7;
+const int fieldwidth = 14;
 bool borderclip;
 bool lost;
 Brick field[fieldheight][fieldwidth];
@@ -79,6 +82,19 @@ class Snake {
       return direction;
     }
 
+    Brick getCurrentSnake() {
+      switch (direction) {
+        case Direction::right:
+          return Brick::rsnake;
+        case Direction::left:
+          return Brick::lsnake;
+        case Direction::up:
+          return Brick::usnake;
+        case Direction::down:
+          return Brick::dsnake;
+      }
+    }
+
     void moveForward() {
       body.pop_back();
 
@@ -105,9 +121,22 @@ class Snake {
     }
 };
 
+bool isSnake(Brick b) {
+  switch (b) {
+    case usnake:
+    case dsnake:
+    case lsnake:
+    case rsnake:
+      return true;
+    default:
+      return false;
+  }
+}
+
 map<Brick, chtype> btoc;
 
 void spawnApple(int seed) {
+  sscalls++;
   int randomxpos, randomypos;
   srand(seed);
   randomxpos = 1 + (rand() % (fieldwidth - 2));
@@ -133,11 +162,15 @@ void iterateGame(Snake* s) {
   pair<int, int> tail = make_pair(s->body.back().second, s->body.back().first);
   s->moveForward();
   Brick b = field[s->body.front().second][s->body.front().first];
-  field[s->body.front().second][s->body.front().first] = snake;
+  field[s->body.front().second][s->body.front().first] = s->getCurrentSnake();
   if (b == Brick::apple) {
     s->body.push_back(make_pair(tail.second, tail.first));
-    spawnApple(time(NULL));
-  } else if (b == Brick::snake) {
+    if (s->getLength() < (fieldwidth - 2)*(fieldheight - 2)) {
+      if (s->getLength() < (fieldwidth - 2)*(fieldheight - 2)-napples + 1) {
+        spawnApple(time(NULL)+tail.second+tail.first);
+      }
+    }
+  }else if (isSnake(b)) {
     lost = true;
   } else {
     field[tail.first][tail.second] = empty;
@@ -172,14 +205,20 @@ void processinput(Snake* s, int input) {
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
+  sscalls = 0;
   // setup field
   fill(&field[0][0], &field[0][0] + sizeof(field) / sizeof(field[0][0]), empty);
+
 
   //spawn snake
   Snake s;  
   for (pair<int, int> b : s.body) {
-    field[b.second][b.first] = snake;
+    field[b.second][b.first] = s.getCurrentSnake();
+  }
+  napples = fieldwidth-2-s.xpos;
+  for (int i = s.xpos+1; i < fieldwidth-1; i++) {
+    field[s.ypos][i] = apple;
   }
 
   //spawn borders
@@ -191,7 +230,7 @@ int main(int argc, char *argv[]) {
   }
 
   //spawn apple
-  spawnApple(time(NULL));
+  //spawnApple(time(NULL));
 
   // setup curses
   initscr();
@@ -204,18 +243,22 @@ int main(int argc, char *argv[]) {
   start_color();
   init_color(8,0,1000,255); // background color
   init_color(9,800,0,0); // apple red
+  init_color(10,0,600,600); // blue-er background color
   init_pair(1,9,8); // apple
-  init_pair(2,4,8); // snake
+  init_pair(2,4,10); // snake
   init_pair(3,7,8); // empty
   btoc[empty] = ' ' | COLOR_PAIR(3);
-  btoc[snake] = 'S' | A_BOLD | COLOR_PAIR(2);
+  btoc[usnake] = ACS_UARROW | A_BOLD | COLOR_PAIR(2);
+  btoc[dsnake] = 'v' | A_BOLD | COLOR_PAIR(2);
+  btoc[lsnake] = ACS_LARROW | A_BOLD | COLOR_PAIR(2); 
+  btoc[rsnake] = ACS_RARROW | A_BOLD | COLOR_PAIR(2);
   btoc[apple] = '@' | A_BOLD | COLOR_PAIR(1); 
   btoc[frame] = '#' | A_BOLD;
 
   //setup game variables
   int iteration = 0;
-  int keyrefreshcount = 10;
-  double iterationtime = 0.2; // in seconds
+  int keyrefreshcount = 100;
+  double iterationtime = 0.3; // in seconds
   int maxiterations = INT_MAX;
   bool developerprints = false;
   borderclip = false;
@@ -231,7 +274,10 @@ int main(int argc, char *argv[]) {
       printw("xpos: %d\n", s.xpos);
       printw("ypos: %d\n", s.ypos);
     }
-    refresh();
+    printw("capacity: %d\n", s.body.capacity());
+    printw("size: %d\n", s.body.size());
+    printw("calls to spawnApple: %d\n", sscalls);
+    printw("napples: %d\n", napples);
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
       int input = getch();
@@ -241,8 +287,15 @@ int main(int argc, char *argv[]) {
       }
       napms(1000*iterationtime/keyrefreshcount);
     }
-    refresh();
     iterateGame(&s);
+    if (s.getLength() == (fieldwidth - 2) * (fieldheight - 2)) {
+      printfield();
+      addstr("You won!\n");
+      refresh();
+      napms(2000);
+      endwin();
+      return 0;
+    }
 
     if (iteration >= maxiterations) {
       lost = true;
