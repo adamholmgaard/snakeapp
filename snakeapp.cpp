@@ -5,15 +5,26 @@
 #include <algorithm>
 using namespace std;
 
-int sscalls;
-int napples;
+/* TODO:
+ * - improve colorscheme
+ * - add arguments to game
+ *   - also add documentation for running with arguments
+ * - add spawning n apples
+ * - refactor Snake class, so it adheres to best practices
+ * - refactor program structure to adhere to best practices (variables, methods,...) 
+ * - add comments
+ * - add spawning with coordinates relative to fieldheight and fieldwidth
+ * - nice to have features: point counting and saving, gamemodes, better snake graphics
+ *
+ */
 
 enum Direction { left, right, up, down };
 
 enum Brick { empty, apple, frame, rsnake, lsnake, usnake, dsnake };
 
-const int fieldheight = 7;
-const int fieldwidth = 14;
+const int fieldheight = 11; //preferrably odd number
+const int fieldwidth = 28; //preferrably even number
+int napples;
 bool borderclip;
 bool lost;
 Brick field[fieldheight][fieldwidth];
@@ -97,7 +108,6 @@ class Snake {
 
     void moveForward() {
       body.pop_back();
-
       switch (direction) {
         case Direction::right:
           body.insert(body.begin(), coordsWithoutBorders(xpos+1, ypos));  
@@ -136,7 +146,6 @@ bool isSnake(Brick b) {
 map<Brick, chtype> btoc;
 
 void spawnApple(int seed) {
-  sscalls++;
   int randomxpos, randomypos;
   srand(seed);
   randomxpos = 1 + (rand() % (fieldwidth - 2));
@@ -165,12 +174,10 @@ void iterateGame(Snake* s) {
   field[s->body.front().second][s->body.front().first] = s->getCurrentSnake();
   if (b == Brick::apple) {
     s->body.push_back(make_pair(tail.second, tail.first));
-    if (s->getLength() < (fieldwidth - 2)*(fieldheight - 2)) {
-      if (s->getLength() < (fieldwidth - 2)*(fieldheight - 2)-napples + 1) {
-        spawnApple(time(NULL)+tail.second+tail.first);
-      }
+    if (s->getLength() < (fieldwidth - 2)*(fieldheight - 2) - napples + 1) {
+      spawnApple(time(NULL)+tail.second+tail.first);
     }
-  }else if (isSnake(b)) {
+  } else if (isSnake(b)) {
     lost = true;
   } else {
     field[tail.first][tail.second] = empty;
@@ -206,7 +213,6 @@ void processinput(Snake* s, int input) {
 }
 
 int main(void) {
-  sscalls = 0;
   // setup field
   fill(&field[0][0], &field[0][0] + sizeof(field) / sizeof(field[0][0]), empty);
 
@@ -216,9 +222,11 @@ int main(void) {
   for (pair<int, int> b : s.body) {
     field[b.second][b.first] = s.getCurrentSnake();
   }
-  napples = fieldwidth-2-s.xpos;
-  for (int i = s.xpos+1; i < fieldwidth-1; i++) {
-    field[s.ypos][i] = apple;
+
+  //spawn apples
+  napples = 1;
+  for (int i = 0; i < napples; i++) {
+    spawnApple(time(NULL) + i);
   }
 
   //spawn borders
@@ -228,9 +236,6 @@ int main(void) {
     field[i][0] = frame;
     field[i][fieldwidth-1] = frame; 
   }
-
-  //spawn apple
-  //spawnApple(time(NULL));
 
   // setup curses
   initscr();
@@ -266,18 +271,18 @@ int main(void) {
   
   // begin game
   while (!lost) {
+    //clear screen and print the field
     printfield(); 
 
+    //print developer insights
     if (developerprints) {
       printw("Iteration %d\n", iteration);
       printw("Length %d\n", s.getLength());
       printw("xpos: %d\n", s.xpos);
       printw("ypos: %d\n", s.ypos);
     }
-    printw("capacity: %d\n", s.body.capacity());
-    printw("size: %d\n", s.body.size());
-    printw("calls to spawnApple: %d\n", sscalls);
-    printw("napples: %d\n", napples);
+
+    //get key input
     for (int i = 0; i < keyrefreshcount; i++) { 
       Direction currdirection = s.getDirection();
       int input = getch();
@@ -285,29 +290,39 @@ int main(void) {
       if (currdirection != s.getDirection()) {
         break;
       }
+      //wait specified amount of time between each key input, adding up to iterationtime
       napms(1000*iterationtime/keyrefreshcount);
     }
+
+    //iterate the game state (based on input)
     iterateGame(&s);
+
+    //check if game has been won
     if (s.getLength() == (fieldwidth - 2) * (fieldheight - 2)) {
       printfield();
       addstr("You won!\n");
       refresh();
       napms(2000);
+
       endwin();
+
       return 0;
     }
 
+    //check if max iterations has been reached
     if (iteration >= maxiterations) {
       lost = true;
     }
 
+    //increment iteration counter
     iteration++;
   }
 
+  //player has lost if here
   printw("You lost at length %d.\n", s.getLength());
   refresh();
   napms(2000);
-  
+
   endwin();
 
   return 0;
